@@ -53,7 +53,11 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Missing required fields: name, category, birth_date" });
     }
 
-    const { name, category, sub_category, description, birth_date, death_date, events: eventsInput, tags: tagIds } = req.body;
+    let { name, category, sub_category, description, birth_date, death_date, events: eventsInput, tags: tagIds } = req.body;
+    
+    // Convert empty string to null for death_date
+    death_date = death_date || null;
+    
     const db = await getDB();
 
     const [result] = await db.query(
