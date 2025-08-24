@@ -3,6 +3,13 @@ import { getDB } from "../db.js";
 
 const router = express.Router();
 
+// Input validation helper
+function validateIndividual(data) {
+  const { name, category, birth_date } = data;
+  if (!name || !category || !birth_date) return false;
+  return true;
+}
+
 // GET all individuals
 router.get("/", async (req, res) => {
   try {
@@ -14,21 +21,17 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET single individual with events & tags
+// GET individual by ID with nested events & tags
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const db = await getDB();
 
-    // Fetch individual
     const [individuals] = await db.query("SELECT * FROM individuals WHERE id=?", [id]);
     if (individuals.length === 0) return res.status(404).json({ error: "Individual not found" });
     const individual = individuals[0];
 
-    // Fetch events
     const [events] = await db.query("SELECT * FROM events WHERE individual_id=? ORDER BY event_date ASC", [id]);
-
-    // Fetch tags
     const [tags] = await db.query(
       `SELECT t.id, t.name, t.type
        FROM tags t
@@ -43,13 +46,16 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// POST new individual + optional events
+// POST new individual
 router.post("/", async (req, res) => {
   try {
+    if (!validateIndividual(req.body)) {
+      return res.status(400).json({ error: "Missing required fields: name, category, birth_date" });
+    }
+
     const { name, category, sub_category, description, birth_date, death_date, events: eventsInput, tags: tagIds } = req.body;
     const db = await getDB();
 
-    // Insert individual
     const [result] = await db.query(
       "INSERT INTO individuals (name, category, sub_category, description, birth_date, death_date) VALUES (?, ?, ?, ?, ?, ?)",
       [name, category, sub_category, description, birth_date, death_date]
@@ -75,6 +81,38 @@ router.post("/", async (req, res) => {
     }
 
     res.status(201).json({ message: "Individual created successfully", id: individualId });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT update individual
+router.put("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, category, sub_category, description, birth_date, death_date } = req.body;
+    const db = await getDB();
+
+    const [result] = await db.query(
+      "UPDATE individuals SET name=?, category=?, sub_category=?, description=?, birth_date=?, death_date=? WHERE id=?",
+      [name, category, sub_category, description, birth_date, death_date, id]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ error: "Individual not found" });
+
+    res.json({ message: "Individual updated successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE individual
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = await getDB();
+    const [result] = await db.query("DELETE FROM individuals WHERE id=?", [id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: "Individual not found" });
+    res.json({ message: "Individual deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
