@@ -4,14 +4,19 @@ APP
 │   ├── .env
 │   ├── db.js
 │   ├── index.js
+│   ├── middleware/
+│   │   └── auth.js
 │   ├── package-lock.json
-│   └── package.json
+│   ├── package.json
+│   └── routes/
+│       └── auth.js
 └── dangler-frontend/
     ├── .gitignore
     ├── .next/
     │   ├── app-build-manifest.json
     │   ├── build-manifest.json
     │   ├── cache/
+    │   ├── fallback-build-manifest.json
     │   ├── package.json
     │   ├── prerender-manifest.json
     │   ├── react-loadable-manifest.json
@@ -33,7 +38,8 @@ APP
     │   └── window.svg
     ├── README.md
     ├── src/
-    │   └── app/
+    │   ├── app/
+    │   └── context/
     ├── tailwind.config.js
     └── tsconfig.json
 ```

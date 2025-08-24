@@ -3,6 +3,8 @@ import cors from "cors";
 import { getDB } from "./db.js";
 import authRoutes from "./routes/auth.js";
 import { authenticate } from "./middleware/auth.js";
+import individualsRoutes from "./routes/individuals.js";
+
 
 const app = express();
 
@@ -12,6 +14,7 @@ app.use(express.json());
 
 // Routes
 app.use("/auth", authRoutes);
+app.use("/individuals", individualsRoutes);
 
 // DB test route
 app.get("/test-db", async (req, res) => {

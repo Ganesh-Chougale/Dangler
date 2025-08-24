@@ -1,9 +1,3 @@
-Perfect 👌 Ganesh! Both frontend (Next.js + Tailwind) and backend (Express + MySQL) are alive and talking. That means **Phase 1 is ✅ complete**.
-
-Here’s a clean **Phase 1 Documentation** you can treat like official project notes:
-
----
-
 # 📘 Dangler — Phase 1: Core Setup & Skeleton
 
 ## 🎯 Goal
