@@ -28,7 +28,7 @@
 * Individual → Events (1\:N)
 * Individual → Tags (M\:N)
   3.3 Seed dummy data for testing.
-  3.4 Test backend APIs with Postman/Insomnia.
+  3.4 Test backend APIs with Postman.
 
 ---
 
@@ -51,17 +51,7 @@
 
 ---
 
-## **Phase 6: Event Media & Forms**
-
-6.1 Add forms to create/update Individuals and Events.
-6.2 Implement file/media upload API (local or Cloudinary).
-6.3 Link uploaded media to events.
-6.4 Display media in modals or expandable cards.
-6.5 Ensure responsive layout for media-heavy entries.
-
----
-
-## **Phase 7: Tagging System**
+## **Phase 6: Tagging System**
 
 7.1 Create `tags` and `tag_types` tables, and M\:N join table.
 7.2 Backend APIs to create, attach, and manage tags.
@@ -71,7 +61,7 @@
 
 ---
 
-## **Phase 8: Categories, Filters & Search**
+## **Phase 7: Categories, Filters & Search**
 
 8.1 Implement category tabs: People, Business, Things, Animals, Ideology.
 8.2 Filter Individuals/Entries by type (real, fictional, mythological).
@@ -81,7 +71,7 @@
 
 ---
 
-## **Phase 9: Comparison Mode**
+## **Phase 8: Comparison Mode**
 
 9.1 Backend API to fetch multiple entries and their events.
 9.2 Frontend page for comparison mode (side-by-side ropes).
@@ -91,7 +81,7 @@
 
 ---
 
-## **Phase 10: User Profiles & Social Features**
+## **Phase 9: User Profiles & Social Features**
 
 10.1 User profile page showing contributions (created entries/events).
 10.2 "Favorite" or "like" functionality for Danglers.
@@ -101,7 +91,7 @@
 
 ---
 
-## **Phase 11: UI/UX Enhancements & Animations**
+## **Phase 10: UI/UX Enhancements & Animations**
 
 11.1 Smooth animations for rope growth, knots, and hover effects (Framer Motion).
 11.2 Dark/light theme toggle.
@@ -111,7 +101,7 @@
 
 ---
 
-## **Phase 12: Performance, Testing & Deployment**
+## **Phase 11: Performance, Testing & Deployment**
 
 12.1 Optimize backend queries for search and comparison.
 12.2 Implement caching if needed (Redis).

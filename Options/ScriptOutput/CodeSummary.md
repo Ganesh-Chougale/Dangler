@@ -25,9 +25,10 @@ import eventsRoutes from "./routes/events.js";
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use("/auth", authRoutes);
-app.use("/individuals", individualsRoutes);
-app.use("/events", eventsRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/individuals", individualsRoutes);
+app.use("/api/events", eventsRoutes);
+app.use("/uploads", express.static("uploads"));
 app.get("/test-db", async (req, res) => {
   try {
     const db = await getDB();
@@ -107,11 +108,6 @@ APP\dangler-backend\routes\events.js:
 import express from "express";
 import { getDB } from "../db.js";
 const router = express.Router();
-function validateEvent(data) {
-  const { individual_id, title, event_date } = data;
-  if (!individual_id || !title || !event_date) return false;
-  return true;
-}
 router.get("/", async (req, res) => {
   try {
     const db = await getDB();
@@ -134,14 +130,14 @@ router.get("/:id", async (req, res) => {
 });
 router.post("/", async (req, res) => {
   try {
-    if (!validateEvent(req.body)) return res.status(400).json({ error: "Missing required fields" });
-    const { individual_id, title, description, event_date, media_url } = req.body;
+    const { individual_id, title, description, event_date } = req.body;
     const db = await getDB();
     const [result] = await db.query(
-      "INSERT INTO events (individual_id, title, description, event_date, media_url) VALUES (?, ?, ?, ?, ?)",
-      [individual_id, title, description || null, event_date, media_url || null]
+      "INSERT INTO events (individual_id, title, description, event_date) VALUES (?,?,?,?)",
+      [individual_id, title, description || null, event_date]
     );
-    res.status(201).json({ message: "Event created", id: result.insertId });
+    const [newEvent] = await db.query("SELECT * FROM events WHERE id=?", [result.insertId]);
+    res.json(newEvent[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -149,14 +145,15 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, event_date, media_url } = req.body;
+    const { title, description, event_date } = req.body;
     const db = await getDB();
     const [result] = await db.query(
-      "UPDATE events SET title=?, description=?, event_date=?, media_url=? WHERE id=?",
-      [title, description || null, event_date, media_url || null, id]
+      "UPDATE events SET title=?, description=?, event_date=? WHERE id=?",
+      [title, description || null, event_date, id]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: "Event not found" });
-    res.json({ message: "Event updated successfully" });
+    const [updated] = await db.query("SELECT * FROM events WHERE id=?", [id]);
+    res.json(updated[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -179,16 +176,20 @@ APP\dangler-backend\routes\individuals.js:
 ```js
 import express from "express";
 import { getDB } from "../db.js";
+import multer from "multer";
+import path from "path";
 const router = express.Router();
-function validateIndividual(data) {
-  const { name, category, birth_date } = data;
-  if (!name || !category || !birth_date) return false;
-  return true;
-}
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, "uploads/"),
+  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
+});
+const upload = multer({ storage });
 router.get("/", async (req, res) => {
   try {
     const db = await getDB();
-    const [individuals] = await db.query("SELECT * FROM individuals ORDER BY birth_date ASC");
+    const [individuals] = await db.query(
+      "SELECT * FROM individuals ORDER BY birth_date IS NULL, birth_date ASC"
+    );
     res.json(individuals);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -201,7 +202,10 @@ router.get("/:id", async (req, res) => {
     const [individuals] = await db.query("SELECT * FROM individuals WHERE id=?", [id]);
     if (individuals.length === 0) return res.status(404).json({ error: "Individual not found" });
     const individual = individuals[0];
-    const [events] = await db.query("SELECT * FROM events WHERE individual_id=? ORDER BY event_date ASC", [id]);
+    const [events] = await db.query(
+      "SELECT * FROM events WHERE individual_id=? ORDER BY event_date ASC",
+      [id]
+    );
     const [tags] = await db.query(
       `SELECT t.id, t.name, t.type
        FROM tags t
@@ -214,46 +218,49 @@ router.get("/:id", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-router.post("/", async (req, res) => {
+router.post("/", upload.single("profile_image"), async (req, res) => {
   try {
-    if (!validateIndividual(req.body)) {
-      return res.status(400).json({ error: "Missing required fields: name, category, birth_date" });
-    }
-    let { name, category, sub_category, description, birth_date, death_date, events: eventsInput, tags: tagIds } = req.body;
-    death_date = death_date || null;
     const db = await getDB();
+    const { name, category, sub_category, description, birth_date, death_date } = req.body;
+    const profile_image = req.file ? `/uploads/${req.file.filename}` : null;
     const [result] = await db.query(
-      "INSERT INTO individuals (name, category, sub_category, description, birth_date, death_date) VALUES (?, ?, ?, ?, ?, ?)",
-      [name, category, sub_category, description, birth_date, death_date]
+      "INSERT INTO individuals (name, category, sub_category, description, birth_date, death_date, profile_image) VALUES (?,?,?,?,?,?,?)",
+      [
+        name,
+        category,
+        sub_category || null,
+        description || null,
+        birth_date || null,
+        death_date || null,
+        profile_image,
+      ]
     );
-    const individualId = result.insertId;
-    if (eventsInput && eventsInput.length > 0) {
-      const eventValues = eventsInput.map(ev => [individualId, ev.title, ev.description || null, ev.event_date, ev.media_url || null]);
-      await db.query(
-        "INSERT INTO events (individual_id, title, description, event_date, media_url) VALUES ?",
-        [eventValues]
-      );
-    }
-    if (tagIds && tagIds.length > 0) {
-      const tagValues = tagIds.map(tagId => [individualId, tagId]);
-      await db.query(
-        "INSERT INTO individual_tags (individual_id, tag_id) VALUES ?",
-        [tagValues]
-      );
-    }
-    res.status(201).json({ message: "Individual created successfully", id: individualId });
+    res.json({ id: result.insertId });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-router.put("/:id", async (req, res) => {
+router.put("/:id", upload.single("profile_image"), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, category, sub_category, description, birth_date, death_date } = req.body;
     const db = await getDB();
+    const { name, category, sub_category, description, birth_date, death_date } = req.body;
+    const profile_image = req.file ? `/uploads/${req.file.filename}` : null;
     const [result] = await db.query(
-      "UPDATE individuals SET name=?, category=?, sub_category=?, description=?, birth_date=?, death_date=? WHERE id=?",
-      [name, category, sub_category, description, birth_date, death_date, id]
+      `UPDATE individuals 
+       SET name=?, category=?, sub_category=?, description=?, birth_date=?, death_date=?, 
+           profile_image = COALESCE(?, profile_image) 
+       WHERE id=?`,
+      [
+        name,
+        category,
+        sub_category || null,
+        description || null,
+        birth_date || null,
+        death_date || null,
+        profile_image,
+        id,
+      ]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: "Individual not found" });
     res.json({ message: "Individual updated successfully" });
@@ -382,6 +389,110 @@ export default function RegisterPage() {
 }
 ```
 
+APP\dangler-frontend\src\app\events\[id]\add-event.tsx:
+```typescript
+"use client";
+import { useState } from "react";
+export default function AddEventPage({ params }: { params: { id: string } }) {
+  const individualId = parseInt(params.id, 10);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [date, setDate] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    let mediaUrl = null;
+    if (file) {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("http://localhost:5000/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      mediaUrl = data.url;
+    }
+    await fetch("http://localhost:5000/api/events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        individual_id: individualId,
+        title,
+        description,
+        event_date: date,
+        media_url: mediaUrl,
+      }),
+    });
+    alert("Event created!");
+  };
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
+      <input
+        type="text"
+        placeholder="Event title"
+        className="border p-2"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        required
+      />
+      <textarea
+        placeholder="Description"
+        className="border p-2"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+      />
+      <input
+        type="date"
+        className="border p-2"
+        value={date}
+        onChange={(e) => setDate(e.target.value)}
+        required
+      />
+      <input
+        type="file"
+        accept="image/*,video/*"
+        onChange={(e) => setFile(e.target.files?.[0] || null)}
+      />
+      <button type="submit" className="bg-blue-600 text-white px-4 py-2">
+        Save Event
+      </button>
+    </form>
+  );
+}
+```
+
+APP\dangler-frontend\src\app\events\[id]\EventCard.tsx:
+```typescript
+type EventCardProps = {
+  title: string;
+  description: string;
+  date: string;
+  media_url?: string;
+};
+export default function EventCard({ title, description, date, media_url }: EventCardProps) {
+  return (
+    <div className="p-4 border rounded-lg shadow bg-white dark:bg-gray-800">
+      <h3 className="font-bold">{title}</h3>
+      <p className="text-sm text-gray-500">{date}</p>
+      <p className="mt-2">{description}</p>
+      {media_url && (
+        <div className="mt-3">
+          {media_url.match(/\.(jpeg|jpg|png|gif)$/i) ? (
+            <img src={media_url} alt={title} className="max-h-60 w-auto rounded-md mx-auto" />
+          ) : media_url.match(/\.(mp4|webm)$/i) ? (
+            <video src={media_url} controls className="max-h-60 mx-auto rounded-md" />
+          ) : (
+            <a href={media_url} target="_blank" className="text-blue-600 underline">
+              View Media
+            </a>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
 APP\dangler-frontend\src\app\globals.css:
 ```css
 @tailwind base;
@@ -431,6 +542,7 @@ APP\dangler-frontend\src\app\individuals\page.tsx:
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { FiPlus, FiSearch, FiCalendar, FiClock, FiUser, FiFilter, FiChevronDown } from "react-icons/fi";
 interface Individual {
   id: number;
   name: string;
@@ -438,30 +550,241 @@ interface Individual {
   description: string;
   birth_date: string;
   death_date?: string | null;
+  profile_image?: string | null;   // ✅ added profile image
 }
 export default function IndividualsPage() {
   const [individuals, setIndividuals] = useState<Individual[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const categories = ["all", "real", "fictional", "historical"];
   useEffect(() => {
+    setIsLoading(true);
     fetch("http://localhost:5000/individuals")
       .then(res => res.json())
-      .then(data => setIndividuals(data))
-      .catch(err => console.error(err));
+      .then(data => {
+        setIndividuals(data);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setIsLoading(false);
+      });
   }, []);
-  return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6">Individuals</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {individuals.map(ind => (
-          <Link key={ind.id} href={`/individuals/${ind.id}`} className="p-4 border rounded shadow hover:shadow-lg transition">
-            <h2 className="font-semibold text-xl">{ind.name}</h2>
-            <p className="text-gray-600">{ind.category}</p>
-            <p className="text-gray-700 mt-2">{ind.description}</p>
-            <p className="text-gray-500 text-sm mt-1">
-              {ind.birth_date?.slice(0,10)} - {ind.death_date ? ind.death_date.slice(0,10) : "Present"}
-            </p>
-          </Link>
-        ))}
+  const filteredIndividuals = individuals.filter(ind => {
+    const matchesSearch =
+      ind.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ind.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory =
+      selectedCategory === "all" ||
+      ind.category.toLowerCase() === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+  const getCategoryColor = (category: string) => {
+    const colors: Record<string, string> = {
+      real: "from-blue-500 to-cyan-400",
+      fictional: "from-purple-500 to-pink-400",
+      historical: "from-amber-500 to-yellow-400",
+      default: "from-gray-500 to-gray-400",
+    };
+    return colors[category.toLowerCase()] || colors.default;
+  };
+  const getCategoryTextColor = (category: string) => {
+    const colors: Record<string, string> = {
+      real: "text-blue-700",
+      fictional: "text-purple-700",
+      historical: "text-amber-700",
+      default: "text-gray-700",
+    };
+    return colors[category.toLowerCase()] || colors.default;
+  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="h-16 w-16 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full mb-4"></div>
+          <p className="text-gray-600">Loading individuals...</p>
+        </div>
       </div>
+    );
+  }
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Header */}
+      <header className="bg-gradient-to-r from-indigo-600 to-blue-500 text-white shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div className="mb-6 md:mb-0">
+              <h1 className="text-4xl font-bold tracking-tight">Individuals</h1>
+              <p className="mt-2 text-blue-100 max-w-2xl">
+                Browse and manage all individuals in the system. Track their
+                timelines, events, and important details.
+              </p>
+            </div>
+            <Link
+              href="/individuals/new"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105"
+            >
+              <FiPlus className="mr-2 -ml-1 h-5 w-5" />
+              Add New Individual
+            </Link>
+          </div>
+        </div>
+      </header>
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Search and Filter */}
+        <div className="mb-8 bg-white rounded-xl shadow-sm p-4">
+          <div className="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-4 md:space-y-0">
+            <div className="relative flex-1">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <FiSearch className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Search by name or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="relative">
+              <button
+                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                className="inline-flex items-center justify-between w-full md:w-40 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <span className="flex items-center">
+                  <FiFilter className="mr-2 h-4 w-4" />
+                  {selectedCategory === "all"
+                    ? "All Categories"
+                    : selectedCategory.charAt(0).toUpperCase() +
+                      selectedCategory.slice(1)}
+                </span>
+                <FiChevronDown
+                  className={`ml-2 h-4 w-4 transition-transform ${
+                    isFilterOpen ? "transform rotate-180" : ""
+                  }`}
+                />
+              </button>
+              {isFilterOpen && (
+                <div className="absolute right-0 z-10 mt-1 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  <div className="py-1">
+                    {categories.map((category) => (
+                      <button
+                        key={category}
+                        onClick={() => {
+                          setSelectedCategory(category);
+                          setIsFilterOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm ${
+                          selectedCategory === category
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {category.charAt(0).toUpperCase() +
+                          category.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        {/* Individuals Grid */}
+        {filteredIndividuals.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-xl shadow-sm">
+            <div className="mx-auto h-24 w-24 text-gray-400 mb-4">
+              <FiUser className="w-full h-full" />
+            </div>
+            <h3 className="mt-2 text-lg font-medium text-gray-900">
+              No individuals found
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {searchQuery || selectedCategory !== "all"
+                ? "Try adjusting your search or filter criteria."
+                : "Get started by adding a new individual."}
+            </p>
+            <div className="mt-6">
+              <Link
+                href="/individuals/new"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <FiPlus className="-ml-1 mr-2 h-4 w-4" />
+                New Individual
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredIndividuals.map((ind) => (
+              <Link
+                key={ind.id}
+                href={`/individuals/${ind.id}`}
+                className="group bg-white overflow-hidden rounded-xl shadow-sm hover:shadow-md transition-all duration-200 transform hover:-translate-y-1 border border-gray-100"
+              >
+                <div
+                  className={`h-2 bg-gradient-to-r ${getCategoryColor(
+                    ind.category
+                  )}`}
+                ></div>
+                <div className="p-6">
+                  {/* ✅ Show profile image if available */}
+                  {ind.profile_image && (
+                    <img
+                      src={`http://localhost:5000${ind.profile_image}`}
+                      alt={ind.name}
+                      className="w-16 h-16 rounded-full object-cover mb-4"
+                    />
+                  )}
+                  <div className="flex items-start justify-between">
+                    <h2 className="text-xl font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                      {ind.name}
+                    </h2>
+                    <span
+                      className={`inline-flex items-center px-3 py-0.5 rounded-full text-xs font-medium ${getCategoryTextColor(
+                        ind.category
+                      )}`}
+                    >
+                      {ind.category.charAt(0).toUpperCase() +
+                        ind.category.slice(1)}
+                    </span>
+                  </div>
+                  {ind.description && (
+                    <p className="mt-3 text-gray-600 line-clamp-2">
+                      {ind.description}
+                    </p>
+                  )}
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="flex items-center text-sm text-gray-500">
+                      <FiCalendar className="flex-shrink-0 mr-2 h-4 w-4" />
+                      <span className="truncate">
+                        {formatDate(ind.birth_date)} -{" "}
+                        {ind.death_date
+                          ? formatDate(ind.death_date)
+                          : "Present"}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-center text-xs text-gray-400">
+                      <FiClock className="mr-1.5 h-3.5 w-3.5" />
+                      <span>Updated {new Date().toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </main>
     </div>
   );
 }
@@ -516,7 +839,6 @@ interface Event {
   title: string;
   description?: string;
   event_date: string;
-  media_url?: string;
 }
 interface Individual {
   id: number;
@@ -525,13 +847,13 @@ interface Individual {
   birth_date: string;
   death_date?: string;
   description: string;
+  profile_image?: string; // ✅ add this
 }
 export default function IndividualPage() {
   const params = useParams();
   const id = params.id;
   const [individual, setIndividual] = useState<Individual | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
-  const [selectedMedia, setSelectedMedia] = useState<string | null>(null); // modal
   // Tooltip
   const { tooltipData, tooltipLeft, tooltipTop, showTooltip, hideTooltip } =
     useTooltip<Event>();
@@ -558,9 +880,7 @@ export default function IndividualPage() {
   const timeScale = scaleTime({
     domain: [
       new Date(individual.birth_date),
-      individual.death_date
-        ? new Date(individual.death_date)
-        : new Date(),
+      individual.death_date ? new Date(individual.death_date) : new Date(),
     ],
     range: [margin.top, height - margin.bottom],
   });
@@ -568,13 +888,18 @@ export default function IndividualPage() {
     <div className="p-8 flex gap-12">
       {/* Left side: individual info */}
       <div className="w-1/3">
+        {individual.profile_image && (
+          <img
+            src={`http://localhost:5000${individual.profile_image}`}
+            alt={`${individual.name} profile`}
+            className="w-32 h-32 rounded-full mb-4"
+          />
+        )}
         <h1 className="text-3xl font-bold mb-4">{individual.name}</h1>
         <p className="text-gray-700">{individual.description}</p>
         <p className="text-gray-500 mt-1">
-          {individual.birth_date?.slice(0, 10)} -{" "}
-          {individual.death_date
-            ? individual.death_date.slice(0, 10)
-            : "Present"}
+          {individual.birth_date?.slice(0, 10)} –{" "}
+          {individual.death_date ? individual.death_date.slice(0, 10) : "Present"}
         </p>
       </div>
       {/* Rope timeline */}
@@ -595,7 +920,7 @@ export default function IndividualPage() {
                   cx={width / 2}
                   cy={y}
                   r={6}
-                  fill={ev.media_url ? "green" : "blue"} // green if media exists
+                  fill="blue" // ✅ always blue now (no media check)
                   onMouseMove={(e) =>
                     showTooltip({
                       tooltipData: ev,
@@ -604,7 +929,6 @@ export default function IndividualPage() {
                     })
                   }
                   onMouseLeave={hideTooltip}
-                  onClick={() => ev.media_url && setSelectedMedia(ev.media_url)} // click to open modal
                 />
               );
             })}
@@ -620,42 +944,10 @@ export default function IndividualPage() {
               <p className="text-gray-500 text-xs">
                 {tooltipData.event_date?.slice(0, 10)}
               </p>
-              {tooltipData.media_url && (
-                <p className="text-blue-600 text-xs mt-1">
-                  (Click node to view media)
-                </p>
-              )}
             </div>
           </TooltipWithBounds>
         )}
       </div>
-      {/* Media modal */}
-      {selectedMedia && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-          <div className="bg-white p-4 rounded shadow-lg max-w-2xl">
-            {selectedMedia.endsWith(".mp4") ? (
-              <video
-                src={selectedMedia}
-                controls
-                autoPlay
-                className="max-h-[80vh]"
-              />
-            ) : (
-              <img
-                src={selectedMedia}
-                alt="Event Media"
-                className="max-h-[80vh] max-w-full"
-              />
-            )}
-            <button
-              className="mt-4 px-4 py-2 bg-red-600 text-white rounded"
-              onClick={() => setSelectedMedia(null)}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -853,7 +1145,6 @@ interface EventFormProps {
     title?: string;
     description?: string;
     event_date?: string;
-    media_url?: string;
     individual_id?: number;
   };
   individualId: number; // required to tie event to a person
@@ -864,13 +1155,12 @@ export default function EventForm({ initialData, individualId, onSubmit }: Event
     title: initialData?.title || "",
     description: initialData?.description || "",
     event_date: initialData?.event_date || "",
-    media_url: initialData?.media_url || "",
     individual_id: initialData?.individual_id || individualId,
   });
-  const handleChange = (e: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
-  const handleSubmit = (e: any) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(form);
   };
@@ -900,14 +1190,6 @@ export default function EventForm({ initialData, individualId, onSubmit }: Event
         className="border p-2 w-full"
         required
       />
-      <input
-        type="url"
-        name="media_url"
-        placeholder="Media URL (optional)"
-        value={form.media_url}
-        onChange={handleChange}
-        className="border p-2 w-full"
-      />
       <button className="bg-green-600 text-white px-4 py-2 rounded">
         Save Event
       </button>
@@ -928,10 +1210,11 @@ interface IndividualFormProps {
     description?: string;
     birth_date?: string;
     death_date?: string;
+    profile_image?: string;
   };
-  onSubmit: (data: any) => void;
+  onSubmit: (data: FormData) => void; // IMPORTANT: use FormData for image upload
 }
-export default function IndividualForm({ initialData, onSubmit }: any) {
+export default function IndividualForm({ initialData, onSubmit }: IndividualFormProps) {
   const [form, setForm] = useState({
     name: initialData?.name || "",
     category: initialData?.category || "real",
@@ -940,12 +1223,21 @@ export default function IndividualForm({ initialData, onSubmit }: any) {
     birth_date: initialData?.birth_date || "",
     death_date: initialData?.death_date || "",
   });
-  const handleChange = (e: any) => {
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
-  const handleSubmit = (e: any) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(form);
+    const formData = new FormData();
+    formData.append("name", form.name);
+    formData.append("category", form.category);
+    formData.append("sub_category", form.sub_category);
+    formData.append("description", form.description);
+    formData.append("birth_date", form.birth_date);
+    if (form.death_date) formData.append("death_date", form.death_date);
+    if (profileImage) formData.append("profile_image", profileImage);
+    onSubmit(formData);
   };
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-4">
@@ -996,6 +1288,13 @@ export default function IndividualForm({ initialData, onSubmit }: any) {
         name="death_date"
         value={form.death_date}
         onChange={handleChange}
+        className="border p-2 w-full"
+      />
+      {/* Profile Image Upload */}
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => setProfileImage(e.target.files?.[0] || null)}
         className="border p-2 w-full"
       />
       <button className="bg-blue-600 text-white px-4 py-2 rounded">

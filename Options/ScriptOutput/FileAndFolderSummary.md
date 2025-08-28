@@ -9,14 +9,15 @@ APP
 │   ├── package-lock.json
 │   ├── package.json
 │   └── routes/
-│       └── auth.js
+│       ├── auth.js
+│       ├── events.js
+│       └── individuals.js
 └── dangler-frontend/
     ├── .gitignore
     ├── .next/
     │   ├── app-build-manifest.json
     │   ├── build-manifest.json
     │   ├── cache/
-    │   ├── fallback-build-manifest.json
     │   ├── package.json
     │   ├── prerender-manifest.json
     │   ├── react-loadable-manifest.json
@@ -39,6 +40,7 @@ APP
     ├── README.md
     ├── src/
     │   ├── app/
+    │   ├── components/
     │   └── context/
     ├── tailwind.config.js
     └── tsconfig.json

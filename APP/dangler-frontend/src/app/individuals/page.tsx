@@ -10,6 +10,7 @@ interface Individual {
   description: string;
   birth_date: string;
   death_date?: string | null;
+  profile_image?: string | null;   // ✅ added profile image
 }
 
 export default function IndividualsPage() {
@@ -36,38 +37,41 @@ export default function IndividualsPage() {
   }, []);
 
   const filteredIndividuals = individuals.filter(ind => {
-    const matchesSearch = ind.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch =
+      ind.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       ind.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = selectedCategory === "all" || ind.category.toLowerCase() === selectedCategory;
-    
+
+    const matchesCategory =
+      selectedCategory === "all" ||
+      ind.category.toLowerCase() === selectedCategory;
+
     return matchesSearch && matchesCategory;
   });
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      real: 'from-blue-500 to-cyan-400',
-      fictional: 'from-purple-500 to-pink-400',
-      historical: 'from-amber-500 to-yellow-400',
-      default: 'from-gray-500 to-gray-400'
+      real: "from-blue-500 to-cyan-400",
+      fictional: "from-purple-500 to-pink-400",
+      historical: "from-amber-500 to-yellow-400",
+      default: "from-gray-500 to-gray-400",
     };
     return colors[category.toLowerCase()] || colors.default;
   };
 
   const getCategoryTextColor = (category: string) => {
     const colors: Record<string, string> = {
-      real: 'text-blue-700',
-      fictional: 'text-purple-700',
-      historical: 'text-amber-700',
-      default: 'text-gray-700'
+      real: "text-blue-700",
+      fictional: "text-purple-700",
+      historical: "text-amber-700",
+      default: "text-gray-700",
     };
     return colors[category.toLowerCase()] || colors.default;
   };
@@ -92,7 +96,8 @@ export default function IndividualsPage() {
             <div className="mb-6 md:mb-0">
               <h1 className="text-4xl font-bold tracking-tight">Individuals</h1>
               <p className="mt-2 text-blue-100 max-w-2xl">
-                Browse and manage all individuals in the system. Track their timelines, events, and important details.
+                Browse and manage all individuals in the system. Track their
+                timelines, events, and important details.
               </p>
             </div>
             <Link
@@ -123,7 +128,7 @@ export default function IndividualsPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            
+
             <div className="relative">
               <button
                 onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -131,11 +136,18 @@ export default function IndividualsPage() {
               >
                 <span className="flex items-center">
                   <FiFilter className="mr-2 h-4 w-4" />
-                  {selectedCategory === 'all' ? 'All Categories' : selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}
+                  {selectedCategory === "all"
+                    ? "All Categories"
+                    : selectedCategory.charAt(0).toUpperCase() +
+                      selectedCategory.slice(1)}
                 </span>
-                <FiChevronDown className={`ml-2 h-4 w-4 transition-transform ${isFilterOpen ? 'transform rotate-180' : ''}`} />
+                <FiChevronDown
+                  className={`ml-2 h-4 w-4 transition-transform ${
+                    isFilterOpen ? "transform rotate-180" : ""
+                  }`}
+                />
               </button>
-              
+
               {isFilterOpen && (
                 <div className="absolute right-0 z-10 mt-1 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                   <div className="py-1">
@@ -146,9 +158,14 @@ export default function IndividualsPage() {
                           setSelectedCategory(category);
                           setIsFilterOpen(false);
                         }}
-                        className={`w-full text-left px-4 py-2 text-sm ${selectedCategory === category ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                        className={`w-full text-left px-4 py-2 text-sm ${
+                          selectedCategory === category
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-700 hover:bg-gray-50"
+                        }`}
                       >
-                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                        {category.charAt(0).toUpperCase() +
+                          category.slice(1)}
                       </button>
                     ))}
                   </div>
@@ -164,11 +181,13 @@ export default function IndividualsPage() {
             <div className="mx-auto h-24 w-24 text-gray-400 mb-4">
               <FiUser className="w-full h-full" />
             </div>
-            <h3 className="mt-2 text-lg font-medium text-gray-900">No individuals found</h3>
+            <h3 className="mt-2 text-lg font-medium text-gray-900">
+              No individuals found
+            </h3>
             <p className="mt-1 text-sm text-gray-500">
-              {searchQuery || selectedCategory !== 'all' 
-                ? 'Try adjusting your search or filter criteria.'
-                : 'Get started by adding a new individual.'}
+              {searchQuery || selectedCategory !== "all"
+                ? "Try adjusting your search or filter criteria."
+                : "Get started by adding a new individual."}
             </p>
             <div className="mt-6">
               <Link
@@ -188,31 +207,52 @@ export default function IndividualsPage() {
                 href={`/individuals/${ind.id}`}
                 className="group bg-white overflow-hidden rounded-xl shadow-sm hover:shadow-md transition-all duration-200 transform hover:-translate-y-1 border border-gray-100"
               >
-                <div className={`h-2 bg-gradient-to-r ${getCategoryColor(ind.category)}`}></div>
+                <div
+                  className={`h-2 bg-gradient-to-r ${getCategoryColor(
+                    ind.category
+                  )}`}
+                ></div>
                 <div className="p-6">
+                  {/* ✅ Show profile image if available */}
+                  {ind.profile_image && (
+                    <img
+                      src={`http://localhost:5000${ind.profile_image}`}
+                      alt={ind.name}
+                      className="w-16 h-16 rounded-full object-cover mb-4"
+                    />
+                  )}
+
                   <div className="flex items-start justify-between">
                     <h2 className="text-xl font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                       {ind.name}
                     </h2>
-                    <span className={`inline-flex items-center px-3 py-0.5 rounded-full text-xs font-medium ${getCategoryTextColor(ind.category)} bg-opacity-20 ${getCategoryColor(ind.category).replace('to-', 'bg-').split(' ')[0]}`}>
-                      {ind.category.charAt(0).toUpperCase() + ind.category.slice(1)}
+                    <span
+                      className={`inline-flex items-center px-3 py-0.5 rounded-full text-xs font-medium ${getCategoryTextColor(
+                        ind.category
+                      )}`}
+                    >
+                      {ind.category.charAt(0).toUpperCase() +
+                        ind.category.slice(1)}
                     </span>
                   </div>
-                  
+
                   {ind.description && (
                     <p className="mt-3 text-gray-600 line-clamp-2">
                       {ind.description}
                     </p>
                   )}
-                  
+
                   <div className="mt-4 pt-4 border-t border-gray-100">
                     <div className="flex items-center text-sm text-gray-500">
                       <FiCalendar className="flex-shrink-0 mr-2 h-4 w-4" />
                       <span className="truncate">
-                        {formatDate(ind.birth_date)} - {ind.death_date ? formatDate(ind.death_date) : 'Present'}
+                        {formatDate(ind.birth_date)} -{" "}
+                        {ind.death_date
+                          ? formatDate(ind.death_date)
+                          : "Present"}
                       </span>
                     </div>
-                    
+
                     <div className="mt-2 flex items-center text-xs text-gray-400">
                       <FiClock className="mr-1.5 h-3.5 w-3.5" />
                       <span>Updated {new Date().toLocaleDateString()}</span>

@@ -3,7 +3,7 @@ const path = require("path");
 
 // ⚙️ Config object for switches
 const config = {
-  reduceTokensByWhiteSpace: false,
+  reduceTokensByWhiteSpace: true,
   checkOldOutput: false,    // 🔥 Compare with old summary
   useFixedSnippets: true,  // 🔥 Use fixed.md as fallback
   skipLanguages: ["text"], // can be ".css" or "css" or mixed

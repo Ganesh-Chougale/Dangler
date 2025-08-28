@@ -11,7 +11,6 @@ interface Event {
   title: string;
   description?: string;
   event_date: string;
-  media_url?: string;
 }
 
 interface Individual {
@@ -21,6 +20,7 @@ interface Individual {
   birth_date: string;
   death_date?: string;
   description: string;
+  profile_image?: string; // ✅ add this
 }
 
 export default function IndividualPage() {
@@ -29,7 +29,6 @@ export default function IndividualPage() {
 
   const [individual, setIndividual] = useState<Individual | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
-  const [selectedMedia, setSelectedMedia] = useState<string | null>(null); // modal
 
   // Tooltip
   const { tooltipData, tooltipLeft, tooltipTop, showTooltip, hideTooltip } =
@@ -60,9 +59,7 @@ export default function IndividualPage() {
   const timeScale = scaleTime({
     domain: [
       new Date(individual.birth_date),
-      individual.death_date
-        ? new Date(individual.death_date)
-        : new Date(),
+      individual.death_date ? new Date(individual.death_date) : new Date(),
     ],
     range: [margin.top, height - margin.bottom],
   });
@@ -71,13 +68,18 @@ export default function IndividualPage() {
     <div className="p-8 flex gap-12">
       {/* Left side: individual info */}
       <div className="w-1/3">
+        {individual.profile_image && (
+          <img
+            src={`http://localhost:5000${individual.profile_image}`}
+            alt={`${individual.name} profile`}
+            className="w-32 h-32 rounded-full mb-4"
+          />
+        )}
         <h1 className="text-3xl font-bold mb-4">{individual.name}</h1>
         <p className="text-gray-700">{individual.description}</p>
         <p className="text-gray-500 mt-1">
-          {individual.birth_date?.slice(0, 10)} -{" "}
-          {individual.death_date
-            ? individual.death_date.slice(0, 10)
-            : "Present"}
+          {individual.birth_date?.slice(0, 10)} –{" "}
+          {individual.death_date ? individual.death_date.slice(0, 10) : "Present"}
         </p>
       </div>
 
@@ -99,7 +101,7 @@ export default function IndividualPage() {
                   cx={width / 2}
                   cy={y}
                   r={6}
-                  fill={ev.media_url ? "green" : "blue"} // green if media exists
+                  fill="blue" // ✅ always blue now (no media check)
                   onMouseMove={(e) =>
                     showTooltip({
                       tooltipData: ev,
@@ -108,7 +110,6 @@ export default function IndividualPage() {
                     })
                   }
                   onMouseLeave={hideTooltip}
-                  onClick={() => ev.media_url && setSelectedMedia(ev.media_url)} // click to open modal
                 />
               );
             })}
@@ -125,43 +126,10 @@ export default function IndividualPage() {
               <p className="text-gray-500 text-xs">
                 {tooltipData.event_date?.slice(0, 10)}
               </p>
-              {tooltipData.media_url && (
-                <p className="text-blue-600 text-xs mt-1">
-                  (Click node to view media)
-                </p>
-              )}
             </div>
           </TooltipWithBounds>
         )}
       </div>
-
-      {/* Media modal */}
-      {selectedMedia && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-          <div className="bg-white p-4 rounded shadow-lg max-w-2xl">
-            {selectedMedia.endsWith(".mp4") ? (
-              <video
-                src={selectedMedia}
-                controls
-                autoPlay
-                className="max-h-[80vh]"
-              />
-            ) : (
-              <img
-                src={selectedMedia}
-                alt="Event Media"
-                className="max-h-[80vh] max-w-full"
-              />
-            )}
-            <button
-              className="mt-4 px-4 py-2 bg-red-600 text-white rounded"
-              onClick={() => setSelectedMedia(null)}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

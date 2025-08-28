@@ -6,7 +6,6 @@ interface EventFormProps {
     title?: string;
     description?: string;
     event_date?: string;
-    media_url?: string;
     individual_id?: number;
   };
   individualId: number; // required to tie event to a person
@@ -18,15 +17,14 @@ export default function EventForm({ initialData, individualId, onSubmit }: Event
     title: initialData?.title || "",
     description: initialData?.description || "",
     event_date: initialData?.event_date || "",
-    media_url: initialData?.media_url || "",
     individual_id: initialData?.individual_id || individualId,
   });
 
-  const handleChange = (e: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: any) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(form);
   };
@@ -56,14 +54,6 @@ export default function EventForm({ initialData, individualId, onSubmit }: Event
         onChange={handleChange}
         className="border p-2 w-full"
         required
-      />
-      <input
-        type="url"
-        name="media_url"
-        placeholder="Media URL (optional)"
-        value={form.media_url}
-        onChange={handleChange}
-        className="border p-2 w-full"
       />
       <button className="bg-green-600 text-white px-4 py-2 rounded">
         Save Event

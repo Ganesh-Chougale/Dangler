@@ -27,6 +27,7 @@ CREATE TABLE individuals (
     description TEXT,
     birth_date DATE,
     death_date DATE,
+    profile_image VARCHAR(500) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```  
@@ -38,7 +39,6 @@ CREATE TABLE events (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     event_date DATE NOT NULL,
-    media_url VARCHAR(500),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (individual_id) REFERENCES individuals(id) ON DELETE CASCADE
 );
@@ -117,4 +117,15 @@ SELECT i.name, t.name AS tag
 FROM individuals i
 JOIN individual_tags it ON i.id = it.individual_id
 JOIN tags t ON t.id = it.tag_id;
+```  
+# Environment  
+- APP\dangler-backend\.env:  
+```env
+PORT=5000
+DB_HOST=localhost
+DB_USER=root
+DB_PASS=root
+DB_NAME=dangler
+JWT_SECRET=5d3ac6e9f7b9376c4a9a6b7696b2ad9066af7c11c0947c86abf07f0a32505fafad7a3748a
+37498eb9be3cc732030fd0370b92c2d6f8f16ed6efa3a087af4f78a
 ```  

@@ -9,11 +9,12 @@ interface IndividualFormProps {
     description?: string;
     birth_date?: string;
     death_date?: string;
+    profile_image?: string;
   };
-  onSubmit: (data: any) => void;
+  onSubmit: (data: FormData) => void; // IMPORTANT: use FormData for image upload
 }
 
-export default function IndividualForm({ initialData, onSubmit }: any) {
+export default function IndividualForm({ initialData, onSubmit }: IndividualFormProps) {
   const [form, setForm] = useState({
     name: initialData?.name || "",
     category: initialData?.category || "real",
@@ -23,13 +24,25 @@ export default function IndividualForm({ initialData, onSubmit }: any) {
     death_date: initialData?.death_date || "",
   });
 
-  const handleChange = (e: any) => {
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: any) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(form);
+
+    const formData = new FormData();
+    formData.append("name", form.name);
+    formData.append("category", form.category);
+    formData.append("sub_category", form.sub_category);
+    formData.append("description", form.description);
+    formData.append("birth_date", form.birth_date);
+    if (form.death_date) formData.append("death_date", form.death_date);
+    if (profileImage) formData.append("profile_image", profileImage);
+
+    onSubmit(formData);
   };
 
   return (
@@ -83,6 +96,15 @@ export default function IndividualForm({ initialData, onSubmit }: any) {
         onChange={handleChange}
         className="border p-2 w-full"
       />
+
+      {/* Profile Image Upload */}
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => setProfileImage(e.target.files?.[0] || null)}
+        className="border p-2 w-full"
+      />
+
       <button className="bg-blue-600 text-white px-4 py-2 rounded">
         Save
       </button>

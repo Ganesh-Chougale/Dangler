@@ -3,13 +3,6 @@ import { getDB } from "../db.js";
 
 const router = express.Router();
 
-// Input validation
-function validateEvent(data) {
-  const { individual_id, title, event_date } = data;
-  if (!individual_id || !title || !event_date) return false;
-  return true;
-}
-
 // GET all events
 router.get("/", async (req, res) => {
   try {
@@ -37,16 +30,16 @@ router.get("/:id", async (req, res) => {
 // POST new event
 router.post("/", async (req, res) => {
   try {
-    if (!validateEvent(req.body)) return res.status(400).json({ error: "Missing required fields" });
-    const { individual_id, title, description, event_date, media_url } = req.body;
+    const { individual_id, title, description, event_date } = req.body;
     const db = await getDB();
 
     const [result] = await db.query(
-      "INSERT INTO events (individual_id, title, description, event_date, media_url) VALUES (?, ?, ?, ?, ?)",
-      [individual_id, title, description || null, event_date, media_url || null]
+      "INSERT INTO events (individual_id, title, description, event_date) VALUES (?,?,?,?)",
+      [individual_id, title, description || null, event_date]
     );
 
-    res.status(201).json({ message: "Event created", id: result.insertId });
+    const [newEvent] = await db.query("SELECT * FROM events WHERE id=?", [result.insertId]);
+    res.json(newEvent[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -56,16 +49,18 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, event_date, media_url } = req.body;
+    const { title, description, event_date } = req.body;
     const db = await getDB();
 
     const [result] = await db.query(
-      "UPDATE events SET title=?, description=?, event_date=?, media_url=? WHERE id=?",
-      [title, description || null, event_date, media_url || null, id]
+      "UPDATE events SET title=?, description=?, event_date=? WHERE id=?",
+      [title, description || null, event_date, id]
     );
 
     if (result.affectedRows === 0) return res.status(404).json({ error: "Event not found" });
-    res.json({ message: "Event updated successfully" });
+
+    const [updated] = await db.query("SELECT * FROM events WHERE id=?", [id]);
+    res.json(updated[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

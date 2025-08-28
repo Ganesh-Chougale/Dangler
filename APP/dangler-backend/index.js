@@ -14,9 +14,11 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
-app.use("/auth", authRoutes);
-app.use("/individuals", individualsRoutes);
-app.use("/events", eventsRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/individuals", individualsRoutes);
+app.use("/api/events", eventsRoutes);
+// app.use("/api/upload", uploadRoutes);
+app.use("/uploads", express.static("uploads"));
 
 // DB test route
 app.get("/test-db", async (req, res) => {
