@@ -26,22 +26,28 @@ router.get("/", async (req, res) => {
 });
 
 // --- GET individual by ID (with events & tags) ---
+// GET /:id → Get individual details with events + tags
 router.get("/:id", async (req, res) => {
   try {
-    const { id } = req.params;
     const db = await getDB();
+    const { id } = req.params;
 
-    const [individuals] = await db.query("SELECT * FROM individuals WHERE id=?", [id]);
-    if (individuals.length === 0) return res.status(404).json({ error: "Individual not found" });
-    const individual = individuals[0];
-
-    const [events] = await db.query(
-      "SELECT * FROM events WHERE individual_id=? ORDER BY event_date ASC",
+    const [individualRows] = await db.query(
+      "SELECT * FROM individuals WHERE id = ?",
       [id]
     );
+    if (individualRows.length === 0) {
+      return res.status(404).json({ error: "Individual not found" });
+    }
+    const individual = individualRows[0];
+
+    const [events] = await db.query(
+      "SELECT * FROM events WHERE individual_id = ? ORDER BY event_date ASC",
+      [id]
+    );
+
     const [tags] = await db.query(
-      `SELECT t.id, t.name, t.type
-       FROM tags t
+      `SELECT t.* FROM tags t
        JOIN individual_tags it ON t.id = it.tag_id
        WHERE it.individual_id = ?`,
       [id]
@@ -52,6 +58,7 @@ router.get("/:id", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // --- POST new individual ---
 router.post("/", upload.single("profile_image"), async (req, res) => {

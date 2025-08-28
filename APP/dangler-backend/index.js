@@ -5,7 +5,7 @@ import authRoutes from "./routes/auth.js";
 import { authenticate } from "./middleware/auth.js";
 import individualsRoutes from "./routes/individuals.js";
 import eventsRoutes from "./routes/events.js";
-
+import tagsRoutes from "./routes/tags.js";
 
 const app = express();
 
@@ -19,6 +19,7 @@ app.use("/api/individuals", individualsRoutes);
 app.use("/api/events", eventsRoutes);
 // app.use("/api/upload", uploadRoutes);
 app.use("/uploads", express.static("uploads"));
+app.use("/api/tags", tagsRoutes);
 
 // DB test route
 app.get("/test-db", async (req, res) => {

@@ -8,7 +8,7 @@ export default function NewEventPage() {
 
   const handleSubmit = async (data: any) => {
     try {
-      const res = await fetch("http://localhost:5000/events", {
+      const res = await fetch("http://localhost:5000/api/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

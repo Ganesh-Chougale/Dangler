@@ -24,7 +24,7 @@ export default function IndividualsPage() {
 
   useEffect(() => {
     setIsLoading(true);
-    fetch("http://localhost:5000/individuals")
+    fetch("http://localhost:5000/api/individuals")
       .then(res => res.json())
       .then(data => {
         setIndividuals(data);

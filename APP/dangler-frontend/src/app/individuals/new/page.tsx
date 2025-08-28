@@ -10,7 +10,7 @@ export default function NewIndividualPage() {
         death_date: data.death_date || null
       };
 
-      const res = await fetch("http://localhost:5000/individuals", {
+      const res = await fetch("http://localhost:5000/api/individuals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)

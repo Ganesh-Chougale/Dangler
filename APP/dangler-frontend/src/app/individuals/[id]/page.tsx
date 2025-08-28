@@ -5,12 +5,18 @@ import { Group } from "@visx/group";
 import { Line, Circle } from "@visx/shape";
 import { scaleTime } from "@visx/scale";
 import { Tooltip, useTooltip, TooltipWithBounds } from "@visx/tooltip";
+import TagSelector from "../../../components/TagSelector";
 
 interface Event {
   id: number;
   title: string;
   description?: string;
   event_date: string;
+}
+
+interface Tag {
+  id: number;
+  name: string;
 }
 
 interface Individual {
@@ -20,7 +26,7 @@ interface Individual {
   birth_date: string;
   death_date?: string;
   description: string;
-  profile_image?: string; // ✅ add this
+  profile_image?: string;
 }
 
 export default function IndividualPage() {
@@ -29,13 +35,14 @@ export default function IndividualPage() {
 
   const [individual, setIndividual] = useState<Individual | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
 
   // Tooltip
   const { tooltipData, tooltipLeft, tooltipTop, showTooltip, hideTooltip } =
     useTooltip<Event>();
 
   useEffect(() => {
-    fetch(`http://localhost:5000/individuals/${id}`)
+    fetch(`http://localhost:5000/api/individuals/${id}`)
       .then((res) => res.json())
       .then((data) => {
         setIndividual(data.individual);
@@ -46,6 +53,7 @@ export default function IndividualPage() {
               new Date(b.event_date).getTime()
           )
         );
+        setTags(data.tags || []);
       })
       .catch((err) => console.error(err));
   }, [id]);
@@ -70,7 +78,7 @@ export default function IndividualPage() {
       <div className="w-1/3">
         {individual.profile_image && (
           <img
-            src={`http://localhost:5000${individual.profile_image}`}
+            src={`http://localhost:5000/api${individual.profile_image}`}
             alt={`${individual.name} profile`}
             className="w-32 h-32 rounded-full mb-4"
           />
@@ -81,6 +89,26 @@ export default function IndividualPage() {
           {individual.birth_date?.slice(0, 10)} –{" "}
           {individual.death_date ? individual.death_date.slice(0, 10) : "Present"}
         </p>
+
+        {/* Tags Section */}
+        {tags.length > 0 && (
+          <div className="mt-4">
+            <h3 className="font-semibold">Tags</h3>
+            <div className="flex gap-2 flex-wrap mt-2">
+              {tags.map((tag) => (
+                <span
+                  key={tag.id}
+                  className="px-2 py-1 text-sm bg-blue-100 text-blue-800 rounded"
+                >
+                  {tag.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Tag Selector */}
+        <TagSelector individualId={Number(id)} />
       </div>
 
       {/* Rope timeline */}
@@ -101,7 +129,7 @@ export default function IndividualPage() {
                   cx={width / 2}
                   cy={y}
                   r={6}
-                  fill="blue" // ✅ always blue now (no media check)
+                  fill="blue"
                   onMouseMove={(e) =>
                     showTooltip({
                       tooltipData: ev,

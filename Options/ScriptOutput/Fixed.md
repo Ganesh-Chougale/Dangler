@@ -9,58 +9,66 @@ USE dangler;
 ```  
 ### create user table  
 ```sql
-CREATE TABLE users (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  email VARCHAR(150) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+CREATE TABLE `users` (
+   `id` int NOT NULL AUTO_INCREMENT,
+   `name` varchar(100) NOT NULL,
+   `email` varchar(150) NOT NULL,
+   `password` varchar(255) NOT NULL,
+   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+   PRIMARY KEY (`id`),
+   UNIQUE KEY `email` (`email`)
+ );
 ```  
 ### create Individuals Table  
 ```sql
-CREATE TABLE individuals (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    category ENUM('real','fictional','mythological','obscure') NOT NULL,
-    sub_category VARCHAR(100), -- e.g., 'movie', 'show', 'game'
-    description TEXT,
-    birth_date DATE,
-    death_date DATE,
-    profile_image VARCHAR(500) NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+CREATE TABLE `individuals` (
+   `id` int NOT NULL AUTO_INCREMENT,
+   `name` varchar(255) NOT NULL,
+   `category` enum('real','fictional','mythological','obscure') NOT NULL,
+   `sub_category` varchar(100) DEFAULT NULL,
+   `description` text,
+   `birth_date` date DEFAULT NULL,
+   `death_date` date DEFAULT NULL,
+   `profile_image` varchar(500) DEFAULT NULL,
+   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+   PRIMARY KEY (`id`)
+ );
 ```  
 ### create Events Table  
 ```sql
-CREATE TABLE events (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    individual_id INT NOT NULL,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    event_date DATE NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (individual_id) REFERENCES individuals(id) ON DELETE CASCADE
-);
+CREATE TABLE `events` (
+   `id` int NOT NULL AUTO_INCREMENT,
+   `individual_id` int NOT NULL,
+   `title` varchar(255) NOT NULL,
+   `description` text,
+   `event_date` date NOT NULL,
+   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+   PRIMARY KEY (`id`),
+   KEY `individual_id` (`individual_id`),
+   CONSTRAINT `events_ibfk_1` FOREIGN KEY (`individual_id`) REFERENCES `individuals` (`id`) ON DELETE CASCADE
+ );
 ```  
 ### Create tag table  
 ```sql
-CREATE TABLE tags (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    type ENUM('role','region','theme','other') DEFAULT 'other',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+CREATE TABLE `tags` (
+   `id` int NOT NULL AUTO_INCREMENT,
+   `name` varchar(100) NOT NULL,
+   `type` enum('role','region','theme','other') DEFAULT 'other',
+   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+   PRIMARY KEY (`id`),
+   UNIQUE KEY `name` (`name`)
+ );
 ```  
 ### Individual_Tags Table (M:N relation)  
 ```sql
-CREATE TABLE individual_tags (
-    individual_id INT NOT NULL,
-    tag_id INT NOT NULL,
-    PRIMARY KEY (individual_id, tag_id),
-    FOREIGN KEY (individual_id) REFERENCES individuals(id) ON DELETE CASCADE,
-    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
-);
+CREATE TABLE `individual_tags` (
+   `individual_id` int NOT NULL,
+   `tag_id` int NOT NULL,
+   PRIMARY KEY (`individual_id`,`tag_id`),
+   KEY `tag_id` (`tag_id`),
+   CONSTRAINT `individual_tags_ibfk_1` FOREIGN KEY (`individual_id`) REFERENCES `individuals` (`id`) ON DELETE CASCADE,
+   CONSTRAINT `individual_tags_ibfk_2` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`) ON DELETE CASCADE
+ );
 ```  
 
 ## Sample seed data  
