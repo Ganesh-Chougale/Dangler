@@ -21,8 +21,11 @@ router.post("/register", async (req, res) => {
     // hash password
     const hashed = await bcrypt.hash(password, 10);
 
-    // insert
-    await db.query("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", [name, email, hashed]);
+    // insert with default role = 'user'
+    await db.query(
+      "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, 'user')",
+      [name, email, hashed]
+    );
 
     res.json({ message: "User registered successfully" });
   } catch (err) {
@@ -43,10 +46,17 @@ router.post("/login", async (req, res) => {
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(400).json({ error: "Invalid credentials" });
 
-    // create token
-    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: "1h" });
+    // create token with role
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
 
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
+    res.json({
+      token,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role }
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

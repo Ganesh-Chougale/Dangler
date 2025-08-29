@@ -2,17 +2,24 @@
 
 import { createContext, useState, useContext, useEffect, ReactNode } from "react";
 
+type UserType = {
+  id: number;
+  name: string;
+  email: string;
+  role: "user" | "admin";
+};
+
 type AuthContextType = {
-  user: any;
+  user: UserType | null;
   token: string | null;
-  login: (user: any, token: string) => void;
+  login: (user: UserType, token: string) => void;
   logout: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<UserType | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
@@ -24,7 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const login = (userData: any, authToken: string) => {
+  const login = (userData: UserType, authToken: string) => {
     setUser(userData);
     setToken(authToken);
     localStorage.setItem("user", JSON.stringify(userData));

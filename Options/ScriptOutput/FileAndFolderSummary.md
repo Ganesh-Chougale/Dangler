@@ -11,7 +11,8 @@ APP
 │   └── routes/
 │       ├── auth.js
 │       ├── events.js
-│       └── individuals.js
+│       ├── individuals.js
+│       └── tags.js
 └── dangler-frontend/
     ├── .gitignore
     ├── .next/

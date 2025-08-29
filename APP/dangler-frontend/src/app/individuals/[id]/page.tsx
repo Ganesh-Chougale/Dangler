@@ -78,7 +78,7 @@ export default function IndividualPage() {
       <div className="w-1/3">
         {individual.profile_image && (
           <img
-            src={`http://localhost:5000/api${individual.profile_image}`}
+            src={`http://localhost:5000${individual.profile_image}`}
             alt={`${individual.name} profile`}
             className="w-32 h-32 rounded-full mb-4"
           />

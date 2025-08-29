@@ -15,6 +15,7 @@ CREATE TABLE `users` (
    `email` varchar(150) NOT NULL,
    `password` varchar(255) NOT NULL,
    `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+   `role` enum('user','admin') NOT NULL DEFAULT 'user',
    PRIMARY KEY (`id`),
    UNIQUE KEY `email` (`email`)
  );
@@ -48,6 +49,28 @@ CREATE TABLE `events` (
    CONSTRAINT `events_ibfk_1` FOREIGN KEY (`individual_id`) REFERENCES `individuals` (`id`) ON DELETE CASCADE
  );
 ```  
+### event_tags  
+```sql
+CREATE TABLE event_tags (
+  event_id INT NOT NULL,
+  tag_id INT NOT NULL,
+  PRIMARY KEY (event_id, tag_id),
+  FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+  FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+);
+``` 
+### tag_moderation  
+```sql
+CREATE TABLE tag_moderation (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  tag_id INT NOT NULL,
+  status ENUM('pending','approved','rejected') DEFAULT 'pending',
+  reported_by INT DEFAULT NULL,
+  reviewed_by INT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
+);
+``` 
 ### Create tag table  
 ```sql
 CREATE TABLE `tags` (
@@ -70,62 +93,7 @@ CREATE TABLE `individual_tags` (
    CONSTRAINT `individual_tags_ibfk_2` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`) ON DELETE CASCADE
  );
 ```  
-
-## Sample seed data  
-### Individuals  
-```sql
-INSERT INTO individuals (name, category, sub_category, description, birth_date, death_date)
-VALUES 
-('Michael Jackson', 'real', NULL, 'King of Pop, famous singer and dancer.', '1958-08-29', '2009-06-25'),
-('Heath Ledger', 'real', NULL, 'Australian actor known for Joker role.', '1979-04-04', '2008-01-22'),
-('Harry Potter', 'fictional', 'movie', 'Wizard in J.K. Rowling series.', '1980-07-31', NULL);
-```  
-### Events  
-```sql
-INSERT INTO events (individual_id, title, description, event_date, media_url)
-VALUES
-(1, 'First Song Release', 'Released first single as a child.', '1967-07-13', NULL),
-(1, 'Married Lisa Marie Presley', 'Michael Jackson married Lisa Marie Presley.', '1994-05-26', NULL),
-(1, 'Death', 'Michael Jackson passed away.', '2009-06-25', NULL),
-(2, 'Oscars Nomination', 'Nominated for Best Actor.', '2006-01-22', NULL),
-(2, 'Death', 'Heath Ledger passed away.', '2008-01-22', NULL),
-(3, 'First Book Release', 'First Harry Potter book published.', '1997-06-26', NULL);
-```  
-### Tags  
-```sql
-INSERT INTO tags (name, type) VALUES 
-('Singer', 'role'),
-('Actor', 'role'),
-('Wizard', 'role'),
-('Pop', 'theme'),
-('Movie', 'theme');
-```  
-### Individual_Tags  
-```sql
-INSERT INTO individual_tags (individual_id, tag_id) VALUES
-(1, 1), -- Michael Jackson → Singer
-(1, 4), -- Michael Jackson → Pop
-(2, 2), -- Heath Ledger → Actor
-(2, 5), -- Heath Ledger → Movie
-(3, 3), -- Harry Potter → Wizard
-(3, 5); -- Harry Potter → Movie
-```  
-## Testing  
-- Test GET all individuals: SELECT * FROM individuals;
-- Test GET individual + events:
-```sql
-SELECT i.*, e.* 
-FROM individuals i
-LEFT JOIN events e ON i.id = e.individual_id
-WHERE i.name = 'Michael Jackson';
-```  
-- Test tags:  
-```sql
-SELECT i.name, t.name AS tag
-FROM individuals i
-JOIN individual_tags it ON i.id = it.individual_id
-JOIN tags t ON t.id = it.tag_id;
-```  
+ 
 # Environment  
 - APP\dangler-backend\.env:  
 ```env

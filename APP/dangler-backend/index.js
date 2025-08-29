@@ -6,6 +6,8 @@ import { authenticate } from "./middleware/auth.js";
 import individualsRoutes from "./routes/individuals.js";
 import eventsRoutes from "./routes/events.js";
 import tagsRoutes from "./routes/tags.js";
+import tagRoutes from "./routes/tags.js";
+import tagModerationRoutes from "./routes/tagModeration.js";
 
 const app = express();
 
@@ -20,6 +22,8 @@ app.use("/api/events", eventsRoutes);
 // app.use("/api/upload", uploadRoutes);
 app.use("/uploads", express.static("uploads"));
 app.use("/api/tags", tagsRoutes);
+app.use("/api/tags", tagRoutes);
+app.use("/api/tag-moderation", tagModerationRoutes);
 
 // DB test route
 app.get("/test-db", async (req, res) => {

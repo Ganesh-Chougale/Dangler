@@ -2,6 +2,7 @@ import express from "express";
 import { getDB } from "../db.js";
 import multer from "multer";
 import path from "path";
+import { authenticate } from "../middleware/auth.js"; // 🔑 add auth for protected ops
 
 const router = express.Router();
 
@@ -10,7 +11,16 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
   filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
 });
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith("image/")) {
+      return cb(new Error("Only images allowed"), false);
+    }
+    cb(null, true);
+  },
+});
 
 // --- GET all individuals ---
 router.get("/", async (req, res) => {
@@ -26,7 +36,6 @@ router.get("/", async (req, res) => {
 });
 
 // --- GET individual by ID (with events & tags) ---
-// GET /:id → Get individual details with events + tags
 router.get("/:id", async (req, res) => {
   try {
     const db = await getDB();
@@ -58,7 +67,6 @@ router.get("/:id", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 // --- POST new individual ---
 router.post("/", upload.single("profile_image"), async (req, res) => {
@@ -126,6 +134,62 @@ router.delete("/:id", async (req, res) => {
     const [result] = await db.query("DELETE FROM individuals WHERE id=?", [id]);
     if (result.affectedRows === 0) return res.status(404).json({ error: "Individual not found" });
     res.json({ message: "Individual deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* -----------------------------
+   🔥 TAG RELATION ENDPOINTS
+--------------------------------*/
+
+// Attach a tag to individual
+router.post("/:id/tags", authenticate, async (req, res) => {
+  const { id } = req.params;
+  const { tagId } = req.body;
+  try {
+    const db = await getDB();
+    await db.query(
+      "INSERT INTO individual_tags (individual_id, tag_id) VALUES (?, ?)",
+      [id, tagId]
+    );
+    res.json({ message: "Tag attached successfully" });
+  } catch (err) {
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(400).json({ error: "Tag already attached" });
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Remove a tag from individual
+router.delete("/:id/tags/:tagId", authenticate, async (req, res) => {
+  const { id, tagId } = req.params;
+  try {
+    const db = await getDB();
+    const [result] = await db.query(
+      "DELETE FROM individual_tags WHERE individual_id=? AND tag_id=?",
+      [id, tagId]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ error: "Tag relation not found" });
+    res.json({ message: "Tag detached successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get all tags for an individual (clean endpoint)
+router.get("/:id/tags", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const db = await getDB();
+    const [rows] = await db.query(
+      `SELECT t.* FROM tags t
+       JOIN individual_tags it ON t.id = it.tag_id
+       WHERE it.individual_id = ?`,
+      [id]
+    );
+    res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
