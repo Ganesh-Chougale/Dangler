@@ -62,3 +62,20 @@ we can compare Michael Jackson with Heath Ledger (comparing Michael's life rope 
 ### `Frontend`: NextJS(App) + TailwindCSS(Css) + Visx(Visualization components) + Framer Motion(Animations)  
 ### `Backend`: Node + Express  
 ### `Database`: MySql  
+
+
+# Important Note about app date picking
+- crucial part about this app is we can't apply 
+```html
+<input type="date">
+```  
+we will apply  
+```html
+<input type="text">
+```  
+formatts for date
+1. know full date: yyyy-mm-dd
+2. unknown month: yyyy-00-00 (fill day or month if known, it will convert to to yyyy-mm automatically)
+3. for unknown year, like very obscure historical figure/thing we only know period, between this year to that year: yyyy-yyyy
+4. user can use either "-" or "/" both should treat as same, to perform further calculations
+5. its normal to save AD/CE string date but for BC/BCE date we should save negative numbers, to perform further calculations

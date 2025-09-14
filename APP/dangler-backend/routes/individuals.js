@@ -2,8 +2,7 @@ import express from "express";
 import { getDB } from "../db.js";
 import multer from "multer";
 import path from "path";
-import { authenticate } from "../middleware/auth.js"; // 🔑 add auth for protected ops
-
+import { authenticate } from "../middleware/auth.js";
 const router = express.Router();
 
 // --- Multer for profile image ---
@@ -22,12 +21,21 @@ const upload = multer({
   },
 });
 
+// Helper function to extract and convert the numeric year from the formatted date string
+function getNumericYear(dateString) {
+  if (!dateString) return null;
+  // Assumes YYYY-MM-DD or similar format
+  const parts = dateString.split('-');
+  let year = parseInt(parts[0], 10);
+  return year;
+}
+
 // --- GET all individuals ---
 router.get("/", async (req, res) => {
   try {
     const db = await getDB();
     const [individuals] = await db.query(
-      "SELECT * FROM individuals ORDER BY birth_date IS NULL, birth_date ASC"
+      "SELECT * FROM individuals ORDER BY birth_year_numeric IS NULL, birth_year_numeric ASC"
     );
     res.json(individuals);
   } catch (err) {
@@ -40,7 +48,6 @@ router.get("/:id", async (req, res) => {
   try {
     const db = await getDB();
     const { id } = req.params;
-
     const [individualRows] = await db.query(
       "SELECT * FROM individuals WHERE id = ?",
       [id]
@@ -49,19 +56,16 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ error: "Individual not found" });
     }
     const individual = individualRows[0];
-
     const [events] = await db.query(
-      "SELECT * FROM events WHERE individual_id = ? ORDER BY event_date ASC",
+      "SELECT * FROM events WHERE individual_id = ? ORDER BY event_year_numeric ASC, event_date ASC",
       [id]
     );
-
     const [tags] = await db.query(
       `SELECT t.* FROM tags t
        JOIN individual_tags it ON t.id = it.tag_id
        WHERE it.individual_id = ?`,
       [id]
     );
-
     res.json({ individual, events, tags });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -75,19 +79,23 @@ router.post("/", upload.single("profile_image"), async (req, res) => {
     const { name, category, sub_category, description, birth_date, death_date } = req.body;
     const profile_image = req.file ? `/uploads/${req.file.filename}` : null;
 
+    const birth_year_numeric = birth_date ? getNumericYear(birth_date) : null;
+    const death_year_numeric = death_date ? getNumericYear(death_date) : null;
+
     const [result] = await db.query(
-      "INSERT INTO individuals (name, category, sub_category, description, birth_date, death_date, profile_image) VALUES (?,?,?,?,?,?,?)",
+      "INSERT INTO individuals (name, category, sub_category, description, birth_date, birth_year_numeric, death_date, death_year_numeric, profile_image) VALUES (?,?,?,?,?,?,?,?,?)",
       [
         name,
         category,
         sub_category || null,
         description || null,
         birth_date || null,
+        birth_year_numeric,
         death_date || null,
+        death_year_numeric,
         profile_image,
       ]
     );
-
     res.json({ id: result.insertId });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -102,10 +110,13 @@ router.put("/:id", upload.single("profile_image"), async (req, res) => {
     const { name, category, sub_category, description, birth_date, death_date } = req.body;
     const profile_image = req.file ? `/uploads/${req.file.filename}` : null;
 
+    const birth_year_numeric = birth_date ? getNumericYear(birth_date) : null;
+    const death_year_numeric = death_date ? getNumericYear(death_date) : null;
+
     const [result] = await db.query(
-      `UPDATE individuals 
-       SET name=?, category=?, sub_category=?, description=?, birth_date=?, death_date=?, 
-           profile_image = COALESCE(?, profile_image) 
+      `UPDATE individuals
+       SET name=?, category=?, sub_category=?, description=?, birth_date=?, birth_year_numeric=?, death_date=?, death_year_numeric=?,
+           profile_image = COALESCE(?, profile_image)
        WHERE id=?`,
       [
         name,
@@ -113,12 +124,13 @@ router.put("/:id", upload.single("profile_image"), async (req, res) => {
         sub_category || null,
         description || null,
         birth_date || null,
+        birth_year_numeric,
         death_date || null,
+        death_year_numeric,
         profile_image,
         id,
       ]
     );
-
     if (result.affectedRows === 0) return res.status(404).json({ error: "Individual not found" });
     res.json({ message: "Individual updated successfully" });
   } catch (err) {
@@ -140,9 +152,8 @@ router.delete("/:id", async (req, res) => {
 });
 
 /* -----------------------------
-   🔥 TAG RELATION ENDPOINTS
+    🔥 TAG RELATION ENDPOINTS
 --------------------------------*/
-
 // Attach a tag to individual
 router.post("/:id/tags", authenticate, async (req, res) => {
   const { id } = req.params;
