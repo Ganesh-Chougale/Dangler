@@ -1,14 +1,11 @@
-# 1. Mysql quaries used.  
-## Tables  
-### create database
+## MYSQL  
+### Create DB schema:  
 ```sql
 CREATE DATABASE dangler;
-```  
-```sql 
 USE dangler;
 ```  
-### create user table  
-```sql
+### Tables  
+```sql  
 CREATE TABLE `users` (
    `id` int NOT NULL AUTO_INCREMENT,
    `name` varchar(100) NOT NULL,
@@ -19,10 +16,8 @@ CREATE TABLE `users` (
    PRIMARY KEY (`id`),
    UNIQUE KEY `email` (`email`)
  );
-```  
-### create Individuals Table  
-```sql
-CREATE TABLE `individuals` (
+ 
+ CREATE TABLE `individuals` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `category` enum('real','fictional','mythological','obscure') NOT NULL,
@@ -36,9 +31,7 @@ CREATE TABLE `individuals` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 );
-```  
-### create Events Table  
-```sql
+
 CREATE TABLE `events` (
   `id` int NOT NULL AUTO_INCREMENT,
   `individual_id` int NOT NULL,
@@ -51,31 +44,24 @@ CREATE TABLE `events` (
   KEY `individual_id` (`individual_id`),
   CONSTRAINT `events_ibfk_1` FOREIGN KEY (`individual_id`) REFERENCES `individuals` (`id`) ON DELETE CASCADE
 );
-```  
-### Create tag table  
-```sql
+
 CREATE TABLE `tags` (
    `id` int NOT NULL AUTO_INCREMENT,
    `name` varchar(100) NOT NULL,
-   `type` enum('role','region','theme','other') DEFAULT 'other',
+   `type` enum('role','region','theme','other','character','species','era') DEFAULT 'other',
    `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
    PRIMARY KEY (`id`),
    UNIQUE KEY `name` (`name`)
  );
-```  
-
-### event_tags  
-```sql
-CREATE TABLE event_tags (
+ 
+ CREATE TABLE event_tags (
   event_id INT NOT NULL,
   tag_id INT NOT NULL,
   PRIMARY KEY (event_id, tag_id),
   FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
   FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
-``` 
-### tag_moderation  
-```sql
+
 CREATE TABLE tag_moderation (
   id INT AUTO_INCREMENT PRIMARY KEY,
   tag_id INT NOT NULL,
@@ -85,10 +71,7 @@ CREATE TABLE tag_moderation (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
-``` 
 
-### Individual_Tags Table (M:N relation)  
-```sql
 CREATE TABLE `individual_tags` (
    `individual_id` int NOT NULL,
    `tag_id` int NOT NULL,
@@ -97,16 +80,4 @@ CREATE TABLE `individual_tags` (
    CONSTRAINT `individual_tags_ibfk_1` FOREIGN KEY (`individual_id`) REFERENCES `individuals` (`id`) ON DELETE CASCADE,
    CONSTRAINT `individual_tags_ibfk_2` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`) ON DELETE CASCADE
  );
-```  
- 
-# 2. Environment  
-- APP\dangler-backend\.env:  
-```env
-PORT=5000
-DB_HOST=localhost
-DB_USER=root
-DB_PASS=root
-DB_NAME=dangler
-JWT_SECRET=5d3ac6e9f7b9376c4a9a6b7696b2ad9066af7c11c0947c86abf07f0a32505fafad7a3748a
-37498eb9be3cc732030fd0370b92c2d6f8f16ed6efa3a087af4f78a
 ```  

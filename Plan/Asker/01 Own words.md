@@ -79,3 +79,13 @@ formatts for date
 3. for unknown year, like very obscure historical figure/thing we only know period, between this year to that year: yyyy-yyyy
 4. user can use either "-" or "/" both should treat as same, to perform further calculations
 5. its normal to save AD/CE string date but for BC/BCE date we should save negative numbers, to perform further calculations
+
+
+for each date input we will give it a option first like 2 buttons or switch to choose BC/BCE or AD/CE.
+
+& only then the input box will be visible.
+and for input we will have 
+
+<input type="number" placeholder="Day">   <!-- setting range between 0-28/29/30/31 based on year & month. for feb it should be only 28 s limit, if leap 29. and 30 & 31 for those dedicated months-->
+<input type="number" placeholder="Month">   <!-- limits only 1 to 12 -->
+<input type="number" placeholder="Year">   <!-- for BCE/BC auto negative number / for AD/CE current is roof limit -->

@@ -20,9 +20,9 @@ export default function RegisterPage() {
     <div className="flex flex-col items-center justify-center min-h-screen">
       <h1 className="text-2xl font-bold mb-4">Register</h1>
       <form onSubmit={handleSubmit} className="flex flex-col gap-2 w-64">
-        <input className="p-2 border" placeholder="Name"
+        <input className="p-2 border" placeholder="Name" type="text"
           onChange={e => setForm({ ...form, name: e.target.value })} />
-        <input className="p-2 border" placeholder="Email"
+        <input className="p-2 border" placeholder="Email" type="email"
           onChange={e => setForm({ ...form, email: e.target.value })} />
         <input type="password" className="p-2 border" placeholder="Password"
           onChange={e => setForm({ ...form, password: e.target.value })} />

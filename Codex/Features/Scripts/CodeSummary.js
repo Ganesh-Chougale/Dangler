@@ -5,7 +5,7 @@ const path = require("path");
 const config = {
   reduceTokensByWhiteSpace: false,
   checkOldOutput: false,    // 🔥 Compare with old summary
-  skipLanguages: ["text"], // can be ".css" or "css" or mixed
+  skipLanguages: ["text", ".md"], // can be ".css" or "css" or mixed
   removeComments: false     // ✅ true = strip comments, false = keep them
 };
 
@@ -34,7 +34,8 @@ const supportedExtensions = {
   ".env": "env",
   ".reg": "registry",
   ".bat": "batch",
-  ".cmd": "batch"
+  ".cmd": "batch",
+  ".md": "markdown"
 };
 
 // 🔑 Normalize skipLanguages so it can take both extensions (.css) or language names (css)
@@ -48,9 +49,8 @@ const ignoredFiles = [
   ".gitignore", "Migrations", "Debug", "test", "libs", "angular.json", "package-lock.json",
   "package.json", "README.md", "Dependencies", "Connected Services", "tsconfig.app.json", "next-env.d.ts",
   "tsconfig.json", "tsconfig.spec.json", "CodeSummary.md", ".mvn", ".settings", "build", "next.config.ts",
-  "cS.js", "CS.js", ".idea", "DirectorySummary.js", ".next", "ErrorExporter.js", "Splitter.js",
-  ".dart_tool", "io", "plugins", "flutter", 
-  "CodeSummer.js", "FileAndFolderSummary.js"
+  "cS.js", "CS.js", ".idea", ".next", "ErrorExporter.js", "Splitter.js", ".dart_tool", "io", "plugins", "flutter"
+  , "CodeSummer.js", "FileAndFolderSummary.js"
 ];
 
 let processedFiles = 0;

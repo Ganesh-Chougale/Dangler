@@ -23,7 +23,8 @@ app.use("/api/events", eventsRoutes);
 app.use("/uploads", express.static("uploads"));
 app.use("/api/tags", tagsRoutes);
 app.use("/api/tags", tagRoutes);
-app.use("/api/tag-moderation", tagModerationRoutes);
+app.use("/api/tagModeration", tagModerationRoutes);
+app.use(errorHandler);
 
 // DB test route
 app.get("/test-db", async (req, res) => {
